@@ -1,0 +1,29 @@
+{
+  "manifest_version": 2,
+  "name": "Discord Quest Hunter",
+  "version": "1.0.1",
+  "description": "",
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "activeTab",
+    "*://*.discord.com/*",
+    "*://*.discordapp.com/*",
+    "*://*.discord.gg/*" ],
+  "icons": { "48": "icon48.png" },
+  "background": { "scripts": ["background.js"], "persistent": true },
+  "browser_action": { "default_popup": "popup.html" },
+  "web_accessible_resources": [ "main.js" ],
+    "content_scripts": [{
+    "matches": ["*://*.discord.com/*", "*://*.discordapp.com/*", "*://*.discord.gg/*"],
+    "js": ["content.js"]
+  }],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{ccaf3dc1-9dab-4296-bb1f-0015fb853920}",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  }
+}
