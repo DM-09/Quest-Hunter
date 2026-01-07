@@ -4,8 +4,10 @@ Download for [Firefox](https://addons.mozilla.org/firefox/addon/discord-quest-hu
 
 <details>
 <summary><h2>한국어</h2></summary>
-쉽게 디스코드 퀘스트를 완료할 수 있습니다 (모바일에서도 가능!) <br>
-https://discord.com/quest-home 에서 확장프로그램 누르고 Start 클릭하면 알아서 퀘스트를 클리어 합니다.
+손쉽게 디스코드 퀘스트를 완료할 수 있습니다 (모바일에서도 가능!) <br>
+https://discord.com/quest-home 'Start Quest' 버튼만 누르면 됩니다
+<br><br>
+* 'Start Quest' 버튼이 안 보이면 새로고침을 하세요
 
 ## 설치
 [Firefox](https://addons.mozilla.org/firefox/addon/discord-quest-hunter/) 버전 <br>
@@ -14,7 +16,10 @@ https://discord.com/quest-home 에서 확장프로그램 누르고 Start 클릭�
 <details>
 <summary><h2>Eng</h2></summary>
 Easy way for completing discord quest! <br>
-Click on the extension at https://discord.com/quest-home and click 'Start' to automatically complete the quest.
+Click 'Start Quest' button at https://discord.com/quest-home to complete quest
+<br><br>
+* if there is no 'Start Quest' button, please reload the page
+
 
 ## Download
 For [Firefox](https://addons.mozilla.org/firefox/addon/discord-quest-hunter/) <br>
