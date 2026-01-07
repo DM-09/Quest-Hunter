@@ -1,27 +1,26 @@
 {
   "manifest_version": 3,
   "name": "Discord Quest Hunter",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
-  "permissions": [
-    "tabs",
-    "scripting",
-    "declarativeNetRequest"
-  ],
-  "host_permissions": [
-    "*://*.discord.com/*",
-    "*://*.discordapp.com/*",
-    "*://*.discord.gg/*"
-  ],
+  "permissions": ["tabs", "scripting", "declarativeNetRequest"],
+  "host_permissions": ["https://discord.com/quest-home"],
   "web_accessible_resources": [
     {
       "resources": ["main.js"],
-      "matches": [ "*://*.discord.com/*", "*://*.discordapp.com/*", "*://*.discord.gg/*"]
+      "matches": [ "*://*.discord.com/*", "*://*.discordapp.com/*", "*://*.discord.gg/*" ]
     }
   ],
-  "icons": { "48": "icon48.png" },
-  "background": { "service_worker": "background.js" },
-  "action": {
-    "default_popup": "popup.html"
-  }
+  "icons": {
+    "48": "icon48.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://discord.com/quest-home"],
+      "js": ["content.js"]
+    }
+  ]
 }
