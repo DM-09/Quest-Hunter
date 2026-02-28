@@ -1,34 +1,24 @@
 function show(msg) {
   var e = document.querySelector('#QuestHunter')
-  e.innerHTML = msg
+  if (e) e.innerHTML = msg
 }
 
 delete window.$;
 let wpRequire = webpackChunkdiscord_app.push([[Symbol()], {}, r => r]);
 webpackChunkdiscord_app.pop();
 
-let ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.getStreamerActiveStreamMetadata)?.exports?.Z;
-let RunningGameStore, QuestsStore, ChannelStore, GuildChannelStore, FluxDispatcher, api
-if(!ApplicationStreamingStore) {
-	ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getStreamerActiveStreamMetadata).exports.A;
-	RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getRunningGames).exports.Ay;
-	QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getQuest).exports.A;
-	ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getAllThreadsForParent).exports.A;
-	GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getSFWDefaultChannel).exports.Ay;
-	FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.h?.__proto__?.flushWaitQueue).exports.h;
-	api = Object.values(wpRequire.c).find(x => x?.exports?.Bo?.get).exports.Bo;
-} else {
-	RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.ZP?.getRunningGames).exports.ZP;
-	QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.getQuest).exports.Z;
-	ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.getAllThreadsForParent).exports.Z;
-	GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.ZP?.getSFWDefaultChannel).exports.ZP;
-	FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.Z?.__proto__?.flushWaitQueue).exports.Z;
-	api = Object.values(wpRequire.c).find(x => x?.exports?.tn?.get).exports.tn;	
-}
+let ApplicationStreamingStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getStreamerActiveStreamMetadata).exports.A;
+let RunningGameStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getRunningGames).exports.Ay;
+let QuestsStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getQuest).exports.A;
+let ChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.A?.__proto__?.getAllThreadsForParent).exports.A;
+let GuildChannelStore = Object.values(wpRequire.c).find(x => x?.exports?.Ay?.getSFWDefaultChannel).exports.Ay;
+let FluxDispatcher = Object.values(wpRequire.c).find(x => x?.exports?.h?.__proto__?.flushWaitQueue).exports.h;
+let api = Object.values(wpRequire.c).find(x => x?.exports?.Bo?.get).exports.Bo;
 
 const supportedTasks = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"]
 let quests = [...QuestsStore.quests.values()].filter(x => x.userStatus?.enrolledAt && !x.userStatus?.completedAt && new Date(x.config.expiresAt).getTime() > Date.now() && supportedTasks.find(y => Object.keys((x.config.taskConfig ?? x.config.taskConfigV2).tasks).includes(y)))
 let isApp = typeof DiscordNative !== "undefined"
+
 if(quests.length === 0) {
 	alert("You don't have any uncompleted quests!")
 } else {
@@ -70,16 +60,19 @@ if(quests.length === 0) {
 					await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: secondsNeeded}})
 				}
 				alert("Quest completed!")
-			  show('Start Quest')
+				show('Start Quest')
 				doJob()
 			}
 			fn()
 			alert(`Spoofing video for ${questName}.`)
       
 		} else if(taskName === "PLAY_ON_DESKTOP") {
+			if(isApp) {
+				alert(`This no longer works in browser. Use the desktop app for ${questName}!`)
+			} else {
 				api.get({url: `/applications/public?application_ids=${applicationId}`}).then(res => {
 					const appData = res.body[0]
-					const exeName = appData.executables.find(x => x.os === "win32").name.replace(">","")
+					const exeName = appData.executables?.find(x => x.os === "win32")?.name?.replace(">","") ?? appData.name.replace(/[\/\\:*?"<>|]/g, "")
 					
 					const fakeGame = {
 						cmdLine: `C:\\Program Files\\${appData.name}\\${exeName}`,
@@ -108,7 +101,7 @@ if(quests.length === 0) {
 						
 						if(progress >= secondsNeeded) {
 							alert("Quest completed!")
-			        show('Start Quest')
+							show('Start Quest')
 							
 							RunningGameStore.getRunningGames = realGetRunningGames
 							RunningGameStore.getGameForPID = realGetGameForPID
@@ -122,7 +115,11 @@ if(quests.length === 0) {
 					
 					alert(`Spoofed your game to ${applicationName}. Wait for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
 				})
+			}
 		} else if(taskName === "STREAM_ON_DESKTOP") {
+			if(isApp) {
+				alert(`This no longer works in browser. Use the desktop app for ${questName}!`)
+			} else {
 				let realFunc = ApplicationStreamingStore.getStreamerActiveStreamMetadata
 				ApplicationStreamingStore.getStreamerActiveStreamMetadata = () => ({
 					id: applicationId,
@@ -136,7 +133,7 @@ if(quests.length === 0) {
 					
 					if(progress >= secondsNeeded) {
 						alert("Quest completed!")
-			      show('Start Quest')
+						show('Start Quest')
 						
 						ApplicationStreamingStore.getStreamerActiveStreamMetadata = realFunc
 						FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
@@ -147,14 +144,14 @@ if(quests.length === 0) {
 				FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
 				
 				alert(`Spoofed your stream to ${applicationName}. Stream any window in vc for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
-				alert("Remember that you need at least 1 other person to be in the vc!")
-        
+				alert("Remember that you need at least 1 other person in the vc!")
+			}
 		} else if(taskName === "PLAY_ACTIVITY") {
 			const channelId = ChannelStore.getSortedPrivateChannels()[0]?.id ?? Object.values(GuildChannelStore.getAllGuilds()).find(x => x != null && x.VOCAL.length > 0).VOCAL[0].channel.id
 			const streamKey = `call:${channelId}:1`
 			
 			let fn = async () => {
-				alert("Completing quest", questName, "-", quest.config.messages.questName)
+				alert(`Completing quest: ${questName}`)
 				
 				while(true) {
 					const res = await api.post({url: `/quests/${quest.id}/heartbeat`, body: {stream_key: streamKey, terminal: false}})
@@ -170,7 +167,7 @@ if(quests.length === 0) {
 				}
 				
 				alert("Quest completed!")
-			  show('Start Quest')
+				show('Start Quest')
 				doJob()
 			}
 			fn()
