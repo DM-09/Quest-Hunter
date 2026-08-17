@@ -18,7 +18,6 @@ let api = Object.values(wpRequire.c).find(x => x?.exports?.Bo?.get).exports.Bo;
 const supportedTasks = ["WATCH_VIDEO", "PLAY_ON_DESKTOP", "STREAM_ON_DESKTOP", "PLAY_ACTIVITY", "WATCH_VIDEO_ON_MOBILE"]
 let quests = [...QuestsStore.quests.values()].filter(x => x.userStatus?.enrolledAt && !x.userStatus?.completedAt && new Date(x.config.expiresAt).getTime() > Date.now() && supportedTasks.find(y => Object.keys((x.config.taskConfig ?? x.config.taskConfigV2).tasks).includes(y)))
 let isApp = typeof DiscordNative !== "undefined"
-
 if(quests.length === 0) {
 	alert("You don't have any uncompleted quests!")
 } else {
@@ -28,33 +27,31 @@ if(quests.length === 0) {
 
 		const pid = Math.floor(Math.random() * 30000) + 1000
 		
-		const applicationId = quest.config.application.id
-		const applicationName = quest.config.application.name
 		const questName = quest.config.messages.questName
 		const taskConfig = quest.config.taskConfig ?? quest.config.taskConfigV2
 		const taskName = supportedTasks.find(x => taskConfig.tasks[x] != null)
-		const secondsNeeded = taskConfig.tasks[taskName].target
+		const taskData = taskConfig.tasks[taskName]
+		const applicationId = quest.config.application?.id ?? taskData.applications?.[0]?.id
+		const secondsNeeded = taskData.target
 		let secondsDone = quest.userStatus?.progress?.[taskName]?.value ?? 0
 
 		if(taskName === "WATCH_VIDEO" || taskName === "WATCH_VIDEO_ON_MOBILE") {
-			const maxFuture = 10, speed = 7, interval = 1
+			const speed = 7
 			const enrolledAt = new Date(quest.userStatus.enrolledAt).getTime()
 			let completed = false
 			let fn = async () => {			
 				while(true) {
-					const maxAllowed = Math.floor((Date.now() - enrolledAt)/1000) + maxFuture
-					const diff = maxAllowed - secondsDone
+					const remaining = Math.min(speed, secondsNeeded - secondsDone)
+					await new Promise(resolve => setTimeout(resolve, remaining * 1000))
+
 					const timestamp = secondsDone + speed
-					if(diff >= speed) {
-						const res = await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: Math.min(secondsNeeded, timestamp + Math.random())}})
-						completed = res.body.completed_at != null
-						secondsDone = Math.min(secondsNeeded, timestamp)
-					}
-					
+					const res = await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: Math.min(secondsNeeded, timestamp + Math.random())}})
+					completed = res.body.completed_at != null
+					secondsDone = Math.min(secondsNeeded, timestamp)
+
 					if(timestamp >= secondsNeeded) {
 						break
 					}
-					await new Promise(resolve => setTimeout(resolve, interval * 1000))
 				}
 				if(!completed) {
 					await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: secondsNeeded}})
@@ -65,10 +62,9 @@ if(quests.length === 0) {
 			}
 			fn()
 			alert(`Spoofing video for ${questName}.`)
-      
 		} else if(taskName === "PLAY_ON_DESKTOP") {
 			if(isApp) {
-				alert(`This no longer works in browser. Use the desktop app for ${questName}!`)
+				alert("This no longer works in browser for non-video quests. Use the discord desktop app to complete the", questName, "quest!")
 			} else {
 				api.get({url: `/applications/public?application_ids=${applicationId}`}).then(res => {
 					const appData = res.body[0]
@@ -97,7 +93,7 @@ if(quests.length === 0) {
 					
 					let fn = data => {
 						let progress = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress.PLAY_ON_DESKTOP.value)
-						show(`Progress: ${progress}/${secondsNeeded}`)
+						show(`Quest progress: ${progress}/${secondsNeeded}`)
 						
 						if(progress >= secondsNeeded) {
 							alert("Quest completed!")
@@ -113,12 +109,12 @@ if(quests.length === 0) {
 					}
 					FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
 					
-					alert(`Spoofed your game to ${applicationName}. Wait for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
+					alert(`Spoofed your game to ${appData.name}. Wait for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
 				})
 			}
 		} else if(taskName === "STREAM_ON_DESKTOP") {
 			if(isApp) {
-				alert(`This no longer works in browser. Use the desktop app for ${questName}!`)
+				alert("This no longer works in browser for non-video quests. Use the discord desktop app to complete the", questName, "quest!")
 			} else {
 				let realFunc = ApplicationStreamingStore.getStreamerActiveStreamMetadata
 				ApplicationStreamingStore.getStreamerActiveStreamMetadata = () => ({
@@ -129,7 +125,7 @@ if(quests.length === 0) {
 				
 				let fn = data => {
 					let progress = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress.STREAM_ON_DESKTOP.value)
-					show(`Progress: ${progress}/${secondsNeeded}`)
+					show(`Quest progress: ${progress}/${secondsNeeded}`)
 					
 					if(progress >= secondsNeeded) {
 						alert("Quest completed!")
@@ -143,20 +139,20 @@ if(quests.length === 0) {
 				}
 				FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
 				
-				alert(`Spoofed your stream to ${applicationName}. Stream any window in vc for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
-				alert("Remember that you need at least 1 other person in the vc!")
+				alert(`Spoofed your stream to the target game. Stream any window in vc for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
+				alert("Remember that you need at least 1 other person to be in the vc!")
 			}
 		} else if(taskName === "PLAY_ACTIVITY") {
 			const channelId = ChannelStore.getSortedPrivateChannels()[0]?.id ?? Object.values(GuildChannelStore.getAllGuilds()).find(x => x != null && x.VOCAL.length > 0).VOCAL[0].channel.id
 			const streamKey = `call:${channelId}:1`
 			
 			let fn = async () => {
-				alert(`Completing quest: ${questName}`)
+				alert("Completing quest", questName, "-", quest.config.messages.questName)
 				
 				while(true) {
 					const res = await api.post({url: `/quests/${quest.id}/heartbeat`, body: {stream_key: streamKey, terminal: false}})
 					const progress = res.body.progress.PLAY_ACTIVITY.value
-					show(`Progress: ${progress}/${secondsNeeded}`)
+					show(`Quest progress: ${progress}/${secondsNeeded}`)
 					
 					await new Promise(resolve => setTimeout(resolve, 20 * 1000))
 					
