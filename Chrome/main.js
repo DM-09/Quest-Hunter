@@ -26,7 +26,7 @@ if(quests.length === 0) {
 		if(!quest) return
 
 		const pid = Math.floor(Math.random() * 30000) + 1000
-		
+
 		const questName = quest.config.messages.questName
 		const taskConfig = quest.config.taskConfig ?? quest.config.taskConfigV2
 		const taskName = supportedTasks.find(x => taskConfig.tasks[x] != null)
@@ -39,7 +39,7 @@ if(quests.length === 0) {
 			const speed = 7
 			const enrolledAt = new Date(quest.userStatus.enrolledAt).getTime()
 			let completed = false
-			let fn = async () => {			
+			let fn = async () => {
 				while(true) {
 					const remaining = Math.min(speed, secondsNeeded - secondsDone)
 					await new Promise(resolve => setTimeout(resolve, remaining * 1000))
@@ -57,7 +57,6 @@ if(quests.length === 0) {
 					await api.post({url: `/quests/${quest.id}/video-progress`, body: {timestamp: secondsNeeded}})
 				}
 				alert("Quest completed!")
-				show('Start Quest')
 				doJob()
 			}
 			fn()
@@ -69,7 +68,7 @@ if(quests.length === 0) {
 				api.get({url: `/applications/public?application_ids=${applicationId}`}).then(res => {
 					const appData = res.body[0]
 					const exeName = appData.executables?.find(x => x.os === "win32")?.name?.replace(">","") ?? appData.name.replace(/[\/\\:*?"<>|]/g, "")
-					
+
 					const fakeGame = {
 						cmdLine: `C:\\Program Files\\${appData.name}\\${exeName}`,
 						exeName,
@@ -90,25 +89,24 @@ if(quests.length === 0) {
 					RunningGameStore.getRunningGames = () => fakeGames
 					RunningGameStore.getGameForPID = (pid) => fakeGames.find(x => x.pid === pid)
 					FluxDispatcher.dispatch({type: "RUNNING_GAMES_CHANGE", removed: realGames, added: [fakeGame], games: fakeGames})
-					
+
 					let fn = data => {
 						let progress = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress.PLAY_ON_DESKTOP.value)
 						show(`Quest progress: ${progress}/${secondsNeeded}`)
-						
+
 						if(progress >= secondsNeeded) {
 							alert("Quest completed!")
-							show('Start Quest')
-							
+
 							RunningGameStore.getRunningGames = realGetRunningGames
 							RunningGameStore.getGameForPID = realGetGameForPID
 							FluxDispatcher.dispatch({type: "RUNNING_GAMES_CHANGE", removed: [fakeGame], added: [], games: []})
 							FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
-							
+
 							doJob()
 						}
 					}
 					FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
-					
+
 					alert(`Spoofed your game to ${appData.name}. Wait for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
 				})
 			}
@@ -122,48 +120,46 @@ if(quests.length === 0) {
 					pid,
 					sourceName: null
 				})
-				
+
 				let fn = data => {
 					let progress = quest.config.configVersion === 1 ? data.userStatus.streamProgressSeconds : Math.floor(data.userStatus.progress.STREAM_ON_DESKTOP.value)
 					show(`Quest progress: ${progress}/${secondsNeeded}`)
-					
+
 					if(progress >= secondsNeeded) {
 						alert("Quest completed!")
-						show('Start Quest')
-						
+
 						ApplicationStreamingStore.getStreamerActiveStreamMetadata = realFunc
 						FluxDispatcher.unsubscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
-						
+
 						doJob()
 					}
 				}
 				FluxDispatcher.subscribe("QUESTS_SEND_HEARTBEAT_SUCCESS", fn)
-				
+
 				alert(`Spoofed your stream to the target game. Stream any window in vc for ${Math.ceil((secondsNeeded - secondsDone) / 60)} more minutes.`)
 				alert("Remember that you need at least 1 other person to be in the vc!")
 			}
 		} else if(taskName === "PLAY_ACTIVITY") {
 			const channelId = ChannelStore.getSortedPrivateChannels()[0]?.id ?? Object.values(GuildChannelStore.getAllGuilds()).find(x => x != null && x.VOCAL.length > 0).VOCAL[0].channel.id
 			const streamKey = `call:${channelId}:1`
-			
+
 			let fn = async () => {
 				alert("Completing quest", questName, "-", quest.config.messages.questName)
-				
+
 				while(true) {
 					const res = await api.post({url: `/quests/${quest.id}/heartbeat`, body: {stream_key: streamKey, terminal: false}})
 					const progress = res.body.progress.PLAY_ACTIVITY.value
 					show(`Quest progress: ${progress}/${secondsNeeded}`)
-					
+
 					await new Promise(resolve => setTimeout(resolve, 20 * 1000))
-					
+
 					if(progress >= secondsNeeded) {
 						await api.post({url: `/quests/${quest.id}/heartbeat`, body: {stream_key: streamKey, terminal: true}})
 						break
 					}
 				}
-				
+
 				alert("Quest completed!")
-				show('Start Quest')
 				doJob()
 			}
 			fn()
